@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { BookingBasket } from "@/components/BookingBasket";
-import { useBasket } from "@/contexts/BasketContext";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { name: "Home", href: "/" },
@@ -11,37 +11,9 @@ const navItems = [
   { name: "Programs", href: "/programs" },
 ];
 
-type BasketItem = {
-  id: string;
-  type: "rental" | "program";
-  facilityId?: string;
-  facilityName?: string;
-  programId?: string;
-  programName?: string;
-  start: string;
-  end: string;
-  price: number;
-};
-
 export function Navbar() {
   const pathname = usePathname();
-  const { items, removeItem, getTotal } = useBasket();
-
-  const renderBasketItem = (item: BasketItem) => (
-    <div>
-      <div className="font-medium">
-        {item.type === "rental" ? item.facilityName : item.programName}
-      </div>
-      <div className="text-sm text-muted-foreground">
-        {new Date(item.start).toLocaleString()} -{" "}
-        {new Date(item.end).toLocaleString()}
-      </div>
-    </div>
-  );
-
-  const handleRemove = (item: BasketItem) => {
-    removeItem(item.id);
-  };
+  const { user, loading, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -71,18 +43,44 @@ export function Navbar() {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
-          <BookingBasket
-            items={items}
-            renderItem={renderBasketItem}
-            onRemove={handleRemove}
-            getTotal={getTotal}
-            onCheckout={async () => {
-              // TODO: Implement checkout
-              console.log("Checking out:", items);
-            }}
-            title="Booking Basket"
-            description="Review your bookings before checkout"
-          />
+          {loading ? null : user ? (
+            <div className="flex items-center gap-2">
+              {user && (
+                <Link
+                  href="/account"
+                  className="ml-4 font-medium"
+                >
+                  My Account
+                </Link>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={logout}
+              >
+                Logout {user.name}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link href="/login">
+                <Button
+                  variant="outline"
+                  size="sm"
+                >
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button
+                  variant="default"
+                  size="sm"
+                >
+                  Register
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </header>

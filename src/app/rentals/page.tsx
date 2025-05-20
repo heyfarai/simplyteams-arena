@@ -66,7 +66,6 @@ export default function RentalsPage() {
 
   const handleAddToBasket = (slot: Slot) => {
     addItem({
-      id: `${slot.facilityId}-${slot.start}`,
       type: "rental",
       facilityId: slot.facilityId,
       facilityName: slot.facilityName,

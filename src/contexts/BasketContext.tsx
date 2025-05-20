@@ -1,9 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
-type BasketItem = {
-  id: string;
+export type BasketItem = {
+  id: string; // unique basket item id
   type: "rental" | "program";
   facilityId?: string;
   facilityName?: string;
@@ -12,40 +12,61 @@ type BasketItem = {
   start: string;
   end: string;
   price: number;
+  participantId?: string | null;
+  participantName?: string | null;
 };
 
 type BasketContextType = {
   items: BasketItem[];
-  addItem: (item: BasketItem) => void;
-  removeItem: (itemId: string) => void;
-  clearBasket: () => void;
+  addItem: (item: Omit<BasketItem, "id"> & { id?: string }) => void;
+  removeItem: (id: string) => void;
+  clear: () => void;
   getTotal: () => number;
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
 };
 
 const BasketContext = createContext<BasketContextType | undefined>(undefined);
 
+const BASKET_KEY = "simplyteams_basket";
+
 export function BasketProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<BasketItem[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const addItem = (item: BasketItem) => {
-    setItems((prev) => [...prev, item]);
+  // Load from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(BASKET_KEY);
+    if (stored) setItems(JSON.parse(stored));
+  }, []);
+
+  // Save to localStorage on change
+  useEffect(() => {
+    localStorage.setItem(BASKET_KEY, JSON.stringify(items));
+  }, [items]);
+
+  const addItem = (item: Omit<BasketItem, "id"> & { id?: string }) => {
+    const uniqueId =
+      item.id || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    setItems((prev) => [...prev, { ...item, id: uniqueId }]);
+    setIsOpen(true);
   };
 
-  const removeItem = (itemId: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== itemId));
+  const removeItem = (id: string) => {
+    setItems((prev) => prev.filter((i) => i.id !== id));
   };
 
-  const clearBasket = () => {
+  const clear = () => {
     setItems([]);
   };
 
   const getTotal = () => {
-    return items.reduce((sum, item) => sum + item.price, 0);
+    return items.reduce((sum, i) => sum + (i.price || 0), 0);
   };
 
   return (
     <BasketContext.Provider
-      value={{ items, addItem, removeItem, clearBasket, getTotal }}
+      value={{ items, addItem, removeItem, clear, getTotal, isOpen, setIsOpen }}
     >
       {children}
     </BasketContext.Provider>
@@ -53,9 +74,7 @@ export function BasketProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useBasket() {
-  const context = useContext(BasketContext);
-  if (context === undefined) {
-    throw new Error("useBasket must be used within a BasketProvider");
-  }
-  return context;
+  const ctx = useContext(BasketContext);
+  if (!ctx) throw new Error("useBasket must be used within a BasketProvider");
+  return ctx;
 }

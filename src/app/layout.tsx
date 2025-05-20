@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { BasketProvider } from "@/contexts/BasketContext";
 import { ClerkProvider } from "@clerk/nextjs";
+import { BasketSheet } from "@/components/BasketSheet";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({
         <ClerkProvider>
           <BasketProvider>
             <Navbar />
+            <BasketSheet />
             {children}
           </BasketProvider>
         </ClerkProvider>

@@ -26,6 +26,9 @@ export type BookingBasketProps<T> = {
   checkoutLabel?: string;
   isLoading?: boolean;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  checkoutDisabled?: boolean;
 };
 
 export function BookingBasket<T>({
@@ -40,11 +43,16 @@ export function BookingBasket<T>({
   checkoutLabel = "Proceed to Checkout",
   isLoading = false,
   trigger,
+  open,
+  onOpenChange,
+  checkoutDisabled = false,
 }: BookingBasketProps<T>) {
   const router = useRouter();
   const { isSignedIn } = useAuth();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
 
   const handleCheckout = async () => {
     if (!isSignedIn) {
@@ -131,7 +139,9 @@ export function BookingBasket<T>({
               <Button
                 className="w-full"
                 onClick={handleCheckout}
-                disabled={isCheckingOut || items.length === 0}
+                disabled={
+                  isCheckingOut || items.length === 0 || checkoutDisabled
+                }
               >
                 {isCheckingOut ? (
                   <>

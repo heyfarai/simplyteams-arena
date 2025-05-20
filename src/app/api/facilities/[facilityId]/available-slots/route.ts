@@ -35,7 +35,6 @@ export async function GET(
   const { facilityId } = params;
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date"); // YYYY-MM-DD
-  console.log("facilityId:", facilityId, "date:", date);
 
   if (!date) {
     console.error("Missing date param");
@@ -95,9 +94,7 @@ export async function GET(
       variables: { facilityId, date, dateStart, dateEnd },
     }),
   });
-  console.log("Keystone API status:", res.status);
   const body = await res.text();
-  console.log("Keystone API response body:", body);
 
   if (!res.ok) {
     return NextResponse.json({ error: body }, { status: 500 });

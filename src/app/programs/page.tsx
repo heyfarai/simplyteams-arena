@@ -41,7 +41,6 @@ export default function ProgramsPage() {
 
   const handleAddToBasket = (program: Program) => {
     addItem({
-      id: program.id,
       type: "program",
       programId: program.id,
       programName: program.name,

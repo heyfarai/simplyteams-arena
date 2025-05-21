@@ -83,6 +83,7 @@ export async function GET(req: NextRequest) {
             program { id name startDate endDate }
             participant { id name }
             dependent { id name }
+            session { id date startTime endTime }
             status
             enrolledAt
           }

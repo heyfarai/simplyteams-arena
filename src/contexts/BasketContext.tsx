@@ -4,16 +4,23 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 
 export type BasketItem = {
   id: string; // unique basket item id
-  type: "rental" | "program";
+  type: "rental" | "program" | "trainingPackage" | "dropIn";
   facilityId?: string;
   facilityName?: string;
   programId?: string;
   programName?: string;
-  start: string;
-  end: string;
+  start?: string;
+  end?: string;
   price: number;
   participantId?: string | null;
   participantName?: string | null;
+  // Training package fields
+  trainingPackageId?: string;
+  trainingPackageName?: string;
+  sessionCount?: number;
+  // Drop-in fields
+  sessionId?: string;
+  sessionDate?: string;
 };
 
 type BasketContextType = {

@@ -80,7 +80,7 @@ export function BookingBasket<T>({
       size="icon"
       className="relative"
     >
-      <ShoppingCart className="h-5 w-5" />
+      <ShoppingCart className="hiddenh-5 w-5" />
       {items.length > 0 && (
         <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
           {items.length}
@@ -115,17 +115,19 @@ export function BookingBasket<T>({
               {items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex justify-between items-center p-3 bg-muted/50 rounded-lg"
+                  className="flex flex-col w-full p-2 bg-muted/70 rounded-lg"
                 >
-                  <div className="flex-1">{renderItem(item)}</div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRemove(item)}
-                    className="text-destructive hover:text-destructive/90"
-                  >
-                    Remove
-                  </Button>
+                  <div className="flex items-end justify-end w-full">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRemove(item)}
+                      className="text-destructive hover:text-destructive/90"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  <div className="">{renderItem(item)}</div>
                 </div>
               ))}
             </div>

@@ -95,19 +95,93 @@ export async function POST(req: NextRequest) {
       } else {
         results.push({ enrollment: data.createEnrollment });
       }
+    } else if (item.type === "dropIn") {
+      // Create Enrollment for drop-in session
+      const isUser =
+        item.participantId === userId ||
+        (await fetch(keystoneApiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: `keystonejs-session=${session}`,
+          },
+          body: JSON.stringify({
+            query: `query { user(where: { id: "${item.participantId}" }) { id } }`,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => data.data?.user));
+
+      const enrollmentData: {
+        program: { connect: { id: string } };
+        session: { connect: { id: string } };
+        customer: { connect: { id: string } };
+        status: string;
+        participant?: { connect: { id: string } };
+        dependent?: { connect: { id: string } };
+      } = {
+        program: { connect: { id: item.programId } },
+        session: { connect: { id: item.sessionId } },
+        customer: { connect: { id: userId } },
+        status: "confirmed",
+      };
+      if (isUser) {
+        enrollmentData.participant = { connect: { id: item.participantId } };
+      } else {
+        enrollmentData.dependent = { connect: { id: item.participantId } };
+      }
+      const mutation = `mutation CreateEnrollment($data: EnrollmentCreateInput!) {
+        createEnrollment(data: $data) {
+          id
+          program { id name }
+          session { id date startTime endTime }
+          customer { id name }
+          participant { id name }
+          dependent { id name }
+          status
+          enrolledAt
+        }
+      }`;
+      const res = await fetch(keystoneApiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `keystonejs-session=${session}`,
+        },
+        body: JSON.stringify({
+          query: mutation,
+          variables: { data: enrollmentData },
+        }),
+      });
+      const { data, errors } = await res.json();
+      if (errors) {
+        const errorMessage =
+          errors[0]?.message || "Failed to create drop-in enrollment";
+        console.error("Drop-in enrollment error:", errorMessage);
+        results.push({ error: { message: errorMessage } });
+      } else if (!data?.createEnrollment) {
+        results.push({
+          error: { message: "Failed to create drop-in enrollment" },
+        });
+      } else {
+        console.log("Drop-in enrollment created:", data.createEnrollment);
+        results.push({ enrollment: data.createEnrollment });
+      }
     } else if (item.type === "rental") {
       // Create FacilityRental
-      const mutation = `mutation CreateFacilityRental($facilityId: ID!, $customerId: ID!, $start: String!, $end: String!) {
+
+      const mutation = `mutation CreateFacilityRental($facilityId: ID!, $customerId: ID!, $startTime: DateTime!, $endTime: DateTime!, $status: String!) {
         createFacilityRental(data: {
           facility: { connect: { id: $facilityId } },
           customer: { connect: { id: $customerId } },
-          start: $start,
-          end: $end
+          startTime: $startTime,
+          endTime: $endTime,
+          status: $status,
         }) {
           id
           facility { id name }
-          start
-          end
+          startTime
+          endTime
         }
       }`;
       const res = await fetch(keystoneApiUrl, {
@@ -121,8 +195,9 @@ export async function POST(req: NextRequest) {
           variables: {
             facilityId: item.facilityId,
             customerId: userId,
-            start: item.start,
-            end: item.end,
+            startTime: item.start,
+            endTime: item.end,
+            status: "confirmed",
           },
         }),
       });
@@ -130,10 +205,13 @@ export async function POST(req: NextRequest) {
       if (errors) {
         // Format the error message from Keystone
         const errorMessage = errors[0]?.message || "Failed to create rental";
+        console.error("Rental creation error:", errorMessage);
         results.push({ error: { message: errorMessage } });
       } else if (!data?.createFacilityRental) {
+        console.error("Rental creation failed: No data returned");
         results.push({ error: { message: "Failed to create rental" } });
       } else {
+        console.log("Rental created successfully:", data.createFacilityRental);
         results.push({ rental: data.createFacilityRental });
       }
     }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2025-04-30.basil",
 });
 
 export async function POST(req: NextRequest) {
@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
   if (!amount) {
     return NextResponse.json({ error: "Amount is required" }, { status: 400 });
   }
+  console.log("=== Creating Intent Request ===");
 
   try {
     const paymentIntent = await stripe.paymentIntents.create({

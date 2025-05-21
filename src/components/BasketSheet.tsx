@@ -6,22 +6,25 @@ import { useState, useEffect } from "react";
 import { BookingBasket } from "@/components/BookingBasket";
 import { toast } from "sonner";
 import { PaymentForm } from "@/components/PaymentForm";
-import { useStripe, useElements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 
 type BasketItem = {
   id: string;
-  type: "rental" | "program";
+  type: "rental" | "program" | "trainingPackage" | "dropIn";
   facilityId?: string;
   facilityName?: string;
   programId?: string;
   programName?: string;
-  start: string;
-  end: string;
+  start?: string;
+  end?: string;
   price: number;
   participantId?: string | null;
   participantName?: string | null;
+  sessionCount?: number;
+  trainingPackageName?: string;
+  trainingPackageId?: string;
+  sessionDate?: string;
 };
 
 type Participant = { id: string; name: string };
@@ -105,82 +108,56 @@ export function BasketSheet() {
 
   // Inline validation: check if any program is missing a participant
   const missingParticipant = items.some(
-    (item) => item.type === "program" && !item.participantId
+    (item) =>
+      (item.type === "program" || item.type === "dropIn") && !item.participantId
   );
 
   const renderBasketItem = (item: BasketItem) => {
-    if (item.type === "program" && user) {
-      if (dependents.length === 0) {
-        // No dependents: show user as participant, allow add
-        return (
-          <div>
-            <div>
-              <b>{item.programName}</b>{" "}
-              <span className="text-xs text-muted-foreground">
-                ({item.facilityName})
-              </span>
-            </div>
-            <div className="text-xs text-primary">Participant: {user.name}</div>
-            {addDepFor === item.id ? (
-              <div className="mt-2 flex gap-2 items-center">
-                <input
-                  className="w-full border rounded px-2 py-1 text-xs"
-                  placeholder="Participant name"
-                  value={newDepName}
-                  onChange={(e) => setNewDepName(e.target.value)}
-                  autoFocus
-                />
-                <Button
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => handleAddDependent(item)}
-                  disabled={!newDepName.trim()}
-                >
-                  Add
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-xs"
-                  onClick={() => {
-                    setAddDepFor(null);
-                    setNewDepName("");
-                  }}
-                >
-                  Cancel
-                </Button>
+    const showAddPerson = addDepFor === item.id;
+    // Determine dropdown options
+    const participantOptions = [
+      { id: user.id, name: user.name },
+      ...dependents,
+      { id: "__add_new__", name: "Another person..." },
+    ];
+    // Determine selected value
+    let selectedParticipantId =
+      item.participantId || (dependents.length === 0 ? user.id : "");
+
+    if ((item.type === "program" || item.type === "dropIn") && user) {
+      return (
+        <div className="flex flex-row justify-between w-full px-4 pb-4">
+          <div className="">
+            <div className="flex justify-between">
+              <div>
+                <b>{item.programName}</b>{" "}
+                {item.type === "dropIn" && item.sessionDate && (
+                  <span className="">on {formatDate(item.sessionDate)}</span>
+                )}{" "}
+                <span className="text-xs text-muted-foreground">
+                  {item.type === "program"
+                    ? `(${item.facilityName})`
+                    : "(Drop-in)"}
+                </span>
               </div>
-            ) : (
-              <Button
-                variant="link"
-                size="sm"
-                className="px-0 h-5 text-xs"
-                onClick={() => setAddDepFor(item.id)}
-              >
-                Add another participant
-              </Button>
-            )}
+            </div>
             {!item.participantId && (
               <div className="text-xs text-red-600 mt-1">
-                Please select a participant
+                Select a participant
               </div>
             )}
-          </div>
-        );
-      } else {
-        // Has dependents: show dropdown
-        return (
-          <div>
-            <div>
-              <b>{item.programName}</b>{" "}
-              <span className="text-xs text-muted-foreground">
-                ({item.facilityName})
-              </span>
-            </div>
             <select
               className="w-full border rounded px-2 py-1 text-xs mt-1"
-              value={item.participantId || ""}
-              onChange={(e) => handleParticipantChange(item, e.target.value)}
+              value={selectedParticipantId}
+              onChange={(e) => {
+                if (e.target.value === "__add_new__") {
+                  setAddDepFor(item.id);
+                  setNewDepName("");
+                } else {
+                  handleParticipantChange(item, e.target.value);
+                  setAddDepFor(null);
+                }
+              }}
             >
               <option
                 value=""
@@ -188,7 +165,7 @@ export function BasketSheet() {
               >
                 Select participant
               </option>
-              {allParticipants.map((p) => (
+              {participantOptions.map((p) => (
                 <option
                   key={p.id}
                   value={p.id}
@@ -197,13 +174,8 @@ export function BasketSheet() {
                 </option>
               ))}
             </select>
-            {item.participantName && (
-              <div className="text-xs text-primary mt-1">
-                Participant: {item.participantName}
-              </div>
-            )}
-            {addDepFor === item.id ? (
-              <div className="mt-2 flex gap-2 items-center">
+            {showAddPerson && (
+              <div className="mt-2 flex gap-2 justify-items-end">
                 <input
                   className="w-full border rounded px-2 py-1 text-xs"
                   placeholder="Participant name"
@@ -231,24 +203,33 @@ export function BasketSheet() {
                   Cancel
                 </Button>
               </div>
-            ) : (
-              <Button
-                variant="link"
-                size="sm"
-                className="px-0 h-5 text-xs"
-                onClick={() => setAddDepFor(item.id)}
-              >
-                Add another participant
-              </Button>
-            )}
-            {!item.participantId && (
-              <div className="text-xs text-red-600 mt-1">
-                Please select a participant
-              </div>
             )}
           </div>
-        );
-      }
+          <div className="text-m text-primary font-semibold mt-1">
+            ${item.price}
+          </div>
+        </div>
+      );
+    }
+    if (item.type === "trainingPackage") {
+      return (
+        <div className="flex flex-row justify-between w-full px-4 pb-4">
+          <div className="">
+            <div className="flex w-full justify-between">
+              <div>
+                <div className="font-medium">{item.trainingPackageName}</div>
+                <div className="">
+                  {item.sessionCount} 1:1 Training Session
+                  {item.sessionCount && item.sessionCount > 1 ? "s" : ""}
+                </div>
+              </div>
+              <div className="text-m text-primary font-semibold">
+                ${item.price}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
     }
     // Not a program or not authed
     return (
@@ -287,15 +268,46 @@ export function BasketSheet() {
     }
 
     try {
-      // 1. Calculate total
-      const amount = getTotal() * 100; // Stripe expects cents
-      // 2. Create PaymentIntent
+      // 1. Create enrollments/rentals
+      const bookingRes = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      type BookingResult = {
+        enrollment?: { id: string };
+        rental?: { id: string };
+      };
+      const bookingData: { results?: BookingResult[] } =
+        await bookingRes.json();
+      // 2. Collect enrollment, rental, and training package IDs
+      const enrollmentIds = (bookingData.results || [])
+        .filter((r) => r.enrollment)
+        .map((r) => r.enrollment!.id);
+      const rentalIds = (bookingData.results || [])
+        .filter((r) => r.rental)
+        .map((r) => r.rental!.id);
+      const trainingPackageIds = items
+        .filter((item) => item.type === "trainingPackage")
+        .map((item) => item.trainingPackageId)
+        .filter(Boolean);
+      // 3. Calculate total
+      const amount = Math.round(getTotal() * 100); // Stripe expects cents
+      // 4. Create PaymentIntent with metadata
       const response = await fetch("/api/payments/create-intent", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({
+          amount,
+          metadata: {
+            userId: user.id,
+            enrollmentIds: JSON.stringify(enrollmentIds),
+            rentalIds: JSON.stringify(rentalIds),
+            trainingPackageIds: JSON.stringify(trainingPackageIds),
+          },
+        }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -339,7 +351,7 @@ export function BasketSheet() {
         onOpenChange={setIsOpen}
         isLoading={loading}
         checkoutLabel="Proceed to Checkout"
-        trigger={undefined}
+        trigger={null}
         checkoutDisabled={missingParticipant}
       />
       {showPaymentForm && clientSecret && (
@@ -371,4 +383,10 @@ export function BasketSheet() {
       )}
     </>
   );
+}
+
+function formatDate(dateStr?: string) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString();
 }

@@ -9,6 +9,12 @@ type Enrollment = {
   program: { id: string; name: string; startDate: string; endDate: string };
   participant: { id: string; name: string } | null;
   dependent: { id: string; name: string } | null;
+  session?: {
+    id: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+  } | null;
   status: string;
   enrolledAt: string;
   participantType?: string;
@@ -82,8 +88,19 @@ export default function AccountPage() {
               <CardContent className="p-4">
                 <CardTitle>{booking.program.name}</CardTitle>
                 <div className="text-sm text-muted-foreground mb-1">
-                  {new Date(booking.program.startDate).toLocaleDateString()} -{" "}
-                  {new Date(booking.program.endDate).toLocaleDateString()}
+                  {booking.session ? (
+                    <>
+                      <span className="font-semibold">Drop-in Session:</span>{" "}
+                      {formatDate(booking.session.date)}{" "}
+                      {formatTime(booking.session.startTime)} -{" "}
+                      {formatTime(booking.session.endTime)}
+                    </>
+                  ) : (
+                    <>
+                      {new Date(booking.program.startDate).toLocaleDateString()}{" "}
+                      - {new Date(booking.program.endDate).toLocaleDateString()}
+                    </>
+                  )}
                 </div>
                 <div className="text-sm">
                   <span className="font-medium">Participant:</span>{" "}
@@ -120,13 +137,26 @@ export default function AccountPage() {
                       <CardContent className="p-4">
                         <CardTitle>{booking.program.name}</CardTitle>
                         <div className="text-sm text-muted-foreground mb-1">
-                          {new Date(
-                            booking.program.startDate
-                          ).toLocaleDateString()}{" "}
-                          -{" "}
-                          {new Date(
-                            booking.program.endDate
-                          ).toLocaleDateString()}
+                          {booking.session ? (
+                            <>
+                              <span className="font-semibold">
+                                Drop-in Session:
+                              </span>{" "}
+                              {formatDate(booking.session.date)}{" "}
+                              {formatTime(booking.session.startTime)} -{" "}
+                              {formatTime(booking.session.endTime)}
+                            </>
+                          ) : (
+                            <>
+                              {new Date(
+                                booking.program.startDate
+                              ).toLocaleDateString()}{" "}
+                              -{" "}
+                              {new Date(
+                                booking.program.endDate
+                              ).toLocaleDateString()}
+                            </>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
                           Status: {booking.status}
@@ -165,4 +195,15 @@ export default function AccountPage() {
       )}
     </main>
   );
+}
+
+function formatDate(dateStr?: string) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString();
+}
+function formatTime(dateStr?: string) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }

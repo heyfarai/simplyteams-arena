@@ -14,6 +14,12 @@ export async function GET() {
       facilities(where: { bookable: { equals: true } }) {
         id
         name
+        sport
+        facilityType
+        minBookingDurationMinutes
+        maxBookingDurationMinutes
+        openTime
+        closeTime
       }
     }
   `;

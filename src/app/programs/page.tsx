@@ -24,18 +24,28 @@ type Program = {
 };
 
 export default function ProgramsPage() {
-  const [programs, setPrograms] = React.useState<Program[]>([]);
+  const [camps, setCamps] = React.useState<Program[]>([]);
+  const [clinics, setClinics] = React.useState<Program[]>([]);
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [loading, setLoading] = React.useState(false);
   const { addItem } = useBasket();
 
-  // Fetch programs on mount and when date changes
+  // Fetch camps and clinics on mount and when date changes
   React.useEffect(() => {
     if (!date) return;
     setLoading(true);
-    fetch(`/api/programs?date=${format(date, "yyyy-MM-dd")}`)
-      .then((res) => res.json())
-      .then((data) => setPrograms(data.programs || []))
+    Promise.all([
+      fetch(`/api/programs?type=camp&date=${format(date, "yyyy-MM-dd")}`)
+        .then((res) => res.json())
+        .then((data) => data.programs || []),
+      fetch(`/api/programs?type=clinic&date=${format(date, "yyyy-MM-dd")}`)
+        .then((res) => res.json())
+        .then((data) => data.programs || []),
+    ])
+      .then(([campsData, clinicsData]) => {
+        setCamps(campsData);
+        setClinics(clinicsData);
+      })
       .finally(() => setLoading(false));
   }, [date]);
 
@@ -80,46 +90,97 @@ export default function ProgramsPage() {
         </Popover>
       </div>
 
-      {/* Programs List */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {loading ? (
-          <div className="col-span-2 text-center py-8">Loading programs...</div>
-        ) : programs.length === 0 ? (
-          <div className="col-span-2 text-center py-8 text-muted-foreground">
-            No programs available for this date.
-          </div>
-        ) : (
-          programs.map((program) => (
-            <div
-              key={program.id}
-              className="border rounded-lg p-4 space-y-4"
-            >
-              <div>
-                <h3 className="font-semibold text-lg">{program.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {program.facilityName}
-                </p>
-              </div>
-              <p className="text-sm">{program.description}</p>
-              <div className="flex justify-between items-center">
-                <div className="text-sm">
-                  <div>
-                    {format(new Date(program.startDate), "h:mm a")} -{" "}
-                    {format(new Date(program.endDate), "h:mm a")}
-                  </div>
-                  <div className="font-medium">${program.price}</div>
-                </div>
-                <Button
-                  variant="secondary"
-                  onClick={() => handleAddToBasket(program)}
-                >
-                  Add to Basket
-                </Button>
-              </div>
+      {/* Camps Section */}
+      <section className="mb-10">
+        <h2 className="text-xl font-semibold mb-4">Camps</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          {loading ? (
+            <div className="col-span-2 text-center py-8">
+              Loading programs...
             </div>
-          ))
-        )}
-      </div>
+          ) : camps.length === 0 ? (
+            <div className="col-span-2 text-center py-8 text-muted-foreground">
+              No camps available for this date.
+            </div>
+          ) : (
+            camps.map((program) => (
+              <div
+                key={program.id}
+                className="border rounded-lg p-4 space-y-4"
+              >
+                <div>
+                  <h3 className="font-semibold text-lg">{program.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {program.facilityName}
+                  </p>
+                </div>
+                <p className="text-sm">{program.description}</p>
+                <div className="flex justify-between items-center">
+                  <div className="text-sm">
+                    <div>
+                      {format(new Date(program.startDate), "h:mm a")} -{" "}
+                      {format(new Date(program.endDate), "h:mm a")}
+                    </div>
+                    <div className="font-medium">${program.price}</div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleAddToBasket(program)}
+                  >
+                    Add to Basket
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* Clinics Section */}
+      <section>
+        <h2 className="text-xl font-semibold mb-4">Clinics</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          {loading ? (
+            <div className="col-span-2 text-center py-8">
+              Loading programs...
+            </div>
+          ) : clinics.length === 0 ? (
+            <div className="col-span-2 text-center py-8 text-muted-foreground">
+              No clinics available for this date.
+            </div>
+          ) : (
+            clinics.map((program) => (
+              <div
+                key={program.id}
+                className="border rounded-lg p-4 space-y-4"
+              >
+                <div>
+                  <h3 className="font-semibold text-lg">{program.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {program.facilityName}
+                  </p>
+                </div>
+                <p className="text-sm">{program.description}</p>
+                <div className="flex justify-between items-center">
+                  <div className="text-sm">
+                    <div>
+                      {format(new Date(program.startDate), "h:mm a")} -{" "}
+                      {format(new Date(program.endDate), "h:mm a")}
+                    </div>
+                    <div className="font-medium">${program.price}</div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleAddToBasket(program)}
+                  >
+                    Add to Basket
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
     </main>
   );
 }
